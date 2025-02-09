@@ -16,7 +16,6 @@ namespace MoneyMicroservice
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
-
             builder.Services.AddMassTransit(cfg =>
             {
                 cfg.SetKebabCaseEndpointNameFormatter();
@@ -39,7 +38,6 @@ namespace MoneyMicroservice
                     rbfc.ConfigureEndpoints(brc);
                 });
             });
-
 
             var app = builder.Build();
 
