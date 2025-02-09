@@ -38,8 +38,7 @@ namespace MoneyMicroservice
                     });
                     rbfc.ConfigureEndpoints(brc);
                 });
-            })
-    .AddMassTransitHostedService();
+            });
 
 
             var app = builder.Build();
