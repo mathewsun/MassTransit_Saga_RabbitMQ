@@ -1,7 +1,7 @@
-﻿using MassTransit;
-using MoneyMicroservice.Models;
+﻿using Contracts;
+using MassTransit;
 
-namespace MoneyMicroservice
+namespace MoneyMicroservice.Consumers
 {
     public class GetMoneyConsumer : IConsumer<IGetMoneyRequest>
     {

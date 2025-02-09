@@ -1,4 +1,7 @@
 
+using MassTransit;
+using MoneyMicroservice.Consumers;
+
 namespace MoneyMicroservice
 {
     public class Program
@@ -12,6 +15,32 @@ namespace MoneyMicroservice
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+
+            builder.Services.AddMassTransit(cfg =>
+            {
+                cfg.SetKebabCaseEndpointNameFormatter();
+                cfg.AddDelayedMessageScheduler();
+                cfg.AddConsumer<AddMoneyConsumer>();
+                cfg.AddConsumer<GetMoneyConsumer>();
+                cfg.UsingRabbitMq((brc, rbfc) =>
+                {
+                    rbfc.UseInMemoryOutbox();
+                    rbfc.UseMessageRetry(r =>
+                    {
+                        r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+                    });
+                    rbfc.UseDelayedMessageScheduler();
+                    rbfc.Host("localhost", h =>
+                    {
+                        h.Username("guest");
+                        h.Password("guest");
+                    });
+                    rbfc.ConfigureEndpoints(brc);
+                });
+            })
+    .AddMassTransitHostedService();
+
 
             var app = builder.Build();
 
