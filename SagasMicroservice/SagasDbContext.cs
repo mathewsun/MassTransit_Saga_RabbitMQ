@@ -1,18 +1,14 @@
-﻿using MassTransit.EntityFrameworkIntegration;
+using MassTransit.EntityFrameworkCoreIntegration;
 using Microsoft.EntityFrameworkCore;
 
-namespace SagasMicroservice
+public sealed class SagasDbContext : SagaDbContext
 {
-    public sealed class SagasDbContext : SagaDbContext
+    public SagasDbContext(DbContextOptions options) : base(options)
     {
-        public SagasDbContext(DbContextOptions options) : base(options)
-        {
-        }
-
-        protected override IEnumerable<ISagaClassMap> Configurations => new ISagaClassMap[]
-        {
-        new BuyItemsSagaStateMap()
-        };
     }
 
+    protected override IEnumerable<ISagaClassMap> Configurations => new ISagaClassMap[]
+    {
+        new BuyItemsSagaStateMap()
+    };
 }

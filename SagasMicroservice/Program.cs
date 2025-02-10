@@ -1,74 +1,79 @@
+using System.Text.Json;
 using MassTransit;
-using SagasMicroservice.Saga;
+using MassTransit.EntityFrameworkCoreIntegration;
+using Microsoft.EntityFrameworkCore;
+using MassTransit.AspNetCoreIntegration;
+using Serilog;
 
-namespace SagasMicroservice
+var builder = WebApplication.CreateBuilder(args);
+// Add services to the container.
+Log.Logger = new LoggerConfiguration()
+          .MinimumLevel.Debug()
+          .Enrich.FromLogContext()
+          .WriteTo.Console()
+          // Add this line:
+          .WriteTo.File(
+           System.IO.Path.Combine("./", "logs", "diagnostics.txt"),
+             rollingInterval: RollingInterval.Day,
+             fileSizeLimitBytes: 10 * 1024 * 1024,
+             retainedFileCountLimit: 2,
+             rollOnFileSizeLimit: true,
+             shared: true,
+             flushToDiskInterval: TimeSpan.FromSeconds(1))
+          .CreateLogger();
+builder.Host.UseSerilog();
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddDbContext<SagasDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("default")));
+builder.Services.AddMassTransit(cfg =>
 {
-    public class Program
+    cfg.SetKebabCaseEndpointNameFormatter();
+    cfg.AddDelayedMessageScheduler();
+    cfg.AddSagaStateMachine<BuyItemsSaga, BuyItemsSagaState>()
+    .EntityFrameworkRepository(r =>
     {
-        public static void Main(string[] args)
+        r.ConcurrencyMode = ConcurrencyMode.Pessimistic;
+        r.ExistingDbContext<SagasDbContext>();
+        r.LockStatementProvider = new PostgresLockStatementProvider();
+    });
+    cfg.UsingRabbitMq((brc, rbfc) =>
+    {
+        rbfc.UseInMemoryOutbox();
+        rbfc.UseMessageRetry(r =>
         {
-            var builder = WebApplication.CreateBuilder(args);
+            r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        });
+        rbfc.UseDelayedMessageScheduler();
+        rbfc.Host("localhost", h =>
+        {
+            h.Username("guest");
+            h.Password("guest");
+        });
+        rbfc.ConfigureEndpoints(brc);
+    });
+});
+var app = builder.Build();
 
-            // Add services to the container.
-            builder.Services.AddAuthorization();
 
-            builder.Services.AddMassTransit(cfg =>
-            {
-                cfg.SetKebabCaseEndpointNameFormatter();
-                cfg.AddDelayedMessageScheduler();
-                //Тут добавляем сагу с указанием что будем сохранять ее в БД 
-                //с помощью EF и будем использовать пессимистичный режим конкуренции за ресурсы
-                cfg.AddSagaStateMachine<BuyItemsSaga, BuyItemsSagaState>()
-                .EntityFrameworkRepository(r =>
-                {
-                    r.ConcurrencyMode = ConcurrencyMode.Pessimistic;
-                    r.ExistingDbContext<SagasDbContext>();
-                    r.LockStatementProvider = new PostgresLockStatementProvider();
-                });
-                cfg.UsingRabbitMq((brc, rbfc) =>
-                {
-                    rbfc.UseInMemoryOutbox();
-                    rbfc.UseMessageRetry(r =>
-                    {
-                        r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
-                    });
-                    rbfc.UseDelayedMessageScheduler();
-                    rbfc.Host("localhost", h =>
-                    {
-                        h.Username("guest");
-                        h.Password("guest");
-                    });
-                    rbfc.ConfigureEndpoints(brc);
-                });
-            });
-
-            var app = builder.Build();
-
-            // Configure the HTTP request pipeline.
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-
-            var summaries = new[]
-            {
-                "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-            };
-
-            app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-            {
-                var forecast = Enumerable.Range(1, 5).Select(index =>
-                    new WeatherForecast
-                    {
-                        Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                        TemperatureC = Random.Shared.Next(-20, 55),
-                        Summary = summaries[Random.Shared.Next(summaries.Length)]
-                    })
-                    .ToArray();
-                return forecast;
-            });
-
-            app.Run();
-        }
-    }
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SagasDbContext>();
+    db.Database.Migrate();
+}
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
