@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ItemsMicroservice", "ItemsM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SagasMicroservice", "SagasMicroservice\SagasMicroservice.csproj", "{17B858D0-DEFE-45A9-87B3-30164BE80082}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiGateway", "ApiGateway\ApiGateway.csproj", "{412AC9FB-7EAD-4BB5-A7F6-8553892B59B5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{17B858D0-DEFE-45A9-87B3-30164BE80082}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17B858D0-DEFE-45A9-87B3-30164BE80082}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17B858D0-DEFE-45A9-87B3-30164BE80082}.Release|Any CPU.Build.0 = Release|Any CPU
+		{412AC9FB-7EAD-4BB5-A7F6-8553892B59B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{412AC9FB-7EAD-4BB5-A7F6-8553892B59B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{412AC9FB-7EAD-4BB5-A7F6-8553892B59B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{412AC9FB-7EAD-4BB5-A7F6-8553892B59B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
