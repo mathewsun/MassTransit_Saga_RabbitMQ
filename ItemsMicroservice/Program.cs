@@ -1,4 +1,7 @@
 
+using ItemsMicroservice.Consumers;
+using MassTransit;
+
 namespace ItemsMicroservice
 {
     public class Program
@@ -12,6 +15,29 @@ namespace ItemsMicroservice
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+            builder.Services.AddMassTransit(cfg =>
+            {
+                cfg.SetKebabCaseEndpointNameFormatter();
+                cfg.AddDelayedMessageScheduler();
+                cfg.AddConsumer<AddItemsConsumer>();
+                cfg.AddConsumer<GetItemsConsumer>();
+                cfg.UsingRabbitMq((brc, rbfc) =>
+                {
+                    rbfc.UseInMemoryOutbox();
+                    rbfc.UseMessageRetry(r =>
+                    {
+                        r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+                    });
+                    rbfc.UseDelayedMessageScheduler();
+                    rbfc.Host("localhost", h =>
+                    {
+                        h.Username("guest");
+                        h.Password("guest");
+                    });
+                    rbfc.ConfigureEndpoints(brc);
+                });
+            });
 
             var app = builder.Build();
 
