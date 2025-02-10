@@ -1,3 +1,6 @@
+using MassTransit;
+using SagasMicroservice.Saga;
+
 namespace SagasMicroservice
 {
     public class Program
@@ -9,6 +12,35 @@ namespace SagasMicroservice
             // Add services to the container.
             builder.Services.AddAuthorization();
 
+            builder.Services.AddMassTransit(cfg =>
+            {
+                cfg.SetKebabCaseEndpointNameFormatter();
+                cfg.AddDelayedMessageScheduler();
+                //Тут добавляем сагу с указанием что будем сохранять ее в БД 
+                //с помощью EF и будем использовать пессимистичный режим конкуренции за ресурсы
+                cfg.AddSagaStateMachine<BuyItemsSaga, BuyItemsSagaState>()
+                .EntityFrameworkRepository(r =>
+                {
+                    r.ConcurrencyMode = ConcurrencyMode.Pessimistic;
+                    r.ExistingDbContext<SagasDbContext>();
+                    r.LockStatementProvider = new PostgresLockStatementProvider();
+                });
+                cfg.UsingRabbitMq((brc, rbfc) =>
+                {
+                    rbfc.UseInMemoryOutbox();
+                    rbfc.UseMessageRetry(r =>
+                    {
+                        r.Incremental(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+                    });
+                    rbfc.UseDelayedMessageScheduler();
+                    rbfc.Host("localhost", h =>
+                    {
+                        h.Username("guest");
+                        h.Password("guest");
+                    });
+                    rbfc.ConfigureEndpoints(brc);
+                });
+            });
 
             var app = builder.Build();
 
