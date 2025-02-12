@@ -19,9 +19,14 @@ namespace ApiGateway.Controllers
             this.logger = logger;
         }
 
-        [HttpPost("buy")]
-        public async Task<BuyItemsResponse> BuyAsync(BuyItemsRequstModel model)
+        [HttpGet("buy")]
+        public async Task<BuyItemsResponse> BuyAsync()
         {
+            BuyItemsRequstModel model = new BuyItemsRequstModel
+            {
+                OrderId = Guid.NewGuid()
+            };
+
             //Делаем запрос в шину и ждем ответа от саги. 
             //Ответ придёт из RabbitMq или словим ошибку таймаута запроса
             logger.LogInformation("Start!");
